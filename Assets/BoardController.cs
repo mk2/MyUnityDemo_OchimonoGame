@@ -35,6 +35,14 @@ public class BoardController : MonoBehaviour
 
     BlockType[,] board;
 
+    GameObject[,] boardObjects;
+
+    const int MaxDragCount = 4;
+
+    int dragCount = -1;
+
+    int[,] mouseDownPosArray = new int[MaxDragCount, 2];
+
     // Use this for initialization
     void Start()
     {
@@ -77,11 +85,14 @@ public class BoardController : MonoBehaviour
         float scaleX = blockSize / goWidth - 0.02f;
         float scaleY = blockSize / goHeight - 0.02f;
         go.transform.localScale = new Vector3(scaleX, scaleY, 1f);
+
+        boardObjects[row, col] = go;
     }
 
     void ResetBoard()
     {
         board = new BlockType[BoardRows, BoardColumns];
+        boardObjects = new GameObject[BoardRows, BoardColumns];
         for (int row = 0; row < BoardRows; row++)
         {
             for (int col = 0; col < BoardColumns; col++)
@@ -97,11 +108,13 @@ public class BoardController : MonoBehaviour
         if (Input.GetMouseButtonDown(0))
         {
             dragStart = true;
+            dragCount = -1;
         }
 
         if (Input.GetMouseButtonUp(0))
         {
             dragStart = false;
+            dragCount = -1;
         }
 
         if (Input.GetMouseButton(0))
@@ -111,9 +124,31 @@ public class BoardController : MonoBehaviour
             var pos = Camera.main.ScreenToWorldPoint(new Vector3(sx, sy, 0f));
             var px = pos.x;
             var py = pos.y;
-            var col = Mathf.RoundToInt(px - originX / blockSize);
-            var row = Mathf.RoundToInt(py - originY / blockSize);
-            Debug.Log("col=" + col);
+            var col = Mathf.RoundToInt((px - originX - blockSize / 2f) / blockSize);
+            var row = Mathf.RoundToInt((py - originY - blockSize / 2f) / blockSize);
+
+            if (dragCount < MaxDragCount && 
+                (dragCount < 0 ||
+                !(mouseDownPosArray[dragCount, 0] == col && mouseDownPosArray[dragCount, 1] == row)))
+            {
+                dragCount++;
+                mouseDownPosArray[dragCount, 0] = col;
+                mouseDownPosArray[dragCount, 1] = row;
+                Debug.Log(mouseDownPosArray[dragCount, 0] + "," + mouseDownPosArray[dragCount, 1]);
+            }
+        }
+
+        if (dragCount > 0)
+        {
+            for (int i = 0; i < dragCount; i++)
+            {
+                var px = mouseDownPosArray[i, 0];
+                var py = mouseDownPosArray[i, 1];
+                var go = boardObjects[py, px];
+                var color = go.GetComponent<SpriteRenderer>().color;
+                color.a = 0.5f;
+                go.GetComponent<SpriteRenderer>().color = color;
+            }
         }
     }
 
