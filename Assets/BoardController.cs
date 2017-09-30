@@ -39,11 +39,9 @@ public class BoardController : MonoBehaviour
 
     GameObject[,] boardObjects;
 
-    const int MaxDragCount = 4;
+    const int MaxDraggedBlockCount = 4;
 
-    int dragCount = -1;
-
-    int[,] mouseDownPosArray = new int[MaxDragCount, 2];
+    List<Block> draggedBlocks = new List<Block>();
 
     // Use this for initialization
     void Start()
@@ -65,11 +63,11 @@ public class BoardController : MonoBehaviour
         {
             for (int column = 0; column < BoardColumns; column++)
             {
-                var placeholder = Instantiate(BlockPlaceholerPrefab);
+                var placeholder = ScaleBlock(Instantiate(BlockPlaceholerPrefab));
                 placeholder.GetComponent<SpriteRenderer>().sortingOrder = -1;
                 LocateBlock(placeholder, row, column);
 
-                var block = NewBlock(board[row, column]);
+                var block = ScaleBlock(NewBlock(board[row, column]));
                 block.GetComponent<SpriteRenderer>().sortingOrder = 1;
                 LocateBlock(block, row, column);
             }
@@ -81,11 +79,6 @@ public class BoardController : MonoBehaviour
         float x = col * blockSize + originX + blockSize / 2;
         float y = row * blockSize + originY + blockSize / 2;
         go.transform.position = new Vector3(x, y, 0f);
-        var goWidth = go.GetComponent<SpriteRenderer>().bounds.size.x;
-        var goHeight = go.GetComponent<SpriteRenderer>().bounds.size.y;
-        float scaleX = blockSize / goWidth - 0.02f;
-        float scaleY = blockSize / goHeight - 0.02f;
-        go.transform.localScale = new Vector3(scaleX, scaleY, 1f);
 
         boardObjects[row, col] = go;
     }
@@ -99,6 +92,7 @@ public class BoardController : MonoBehaviour
             for (int col = 0; col < BoardColumns; col++)
             {
                 board[row, col] = (BlockType)Random.Range(1, 5);
+                //board[row, col] = BlockType.Cherry;
             }
         }
     }
@@ -108,21 +102,14 @@ public class BoardController : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
+            draggedBlocks.Clear();
             dragStart = true;
-            dragCount = -1;
         }
 
         if (Input.GetMouseButtonUp(0))
         {
-            if (dragCount == MaxDragCount)
-            {
-                DeleteBoard();
-                FillBoard();
-                UpdateBoard();
-            }
-
+            StartCoroutine(ProcessBoard());
             dragStart = false;
-            dragCount = -1;
         }
 
         if (Input.GetMouseButton(0))
@@ -135,18 +122,25 @@ public class BoardController : MonoBehaviour
             var col = Mathf.FloorToInt((px - originX) / blockSize);
             var row = Mathf.FloorToInt((py - originY) / blockSize);
 
-            if (dragCount < MaxDragCount &&
-                (dragCount < 0 ||
-                !(mouseDownPosArray[dragCount, 0] == col && mouseDownPosArray[dragCount, 1] == row)))
+            if (0 <= row && row < BoardRows && 0 <= col && col < BoardColumns)
             {
-                dragCount++;
-                mouseDownPosArray[dragCount, 0] = col;
-                mouseDownPosArray[dragCount, 1] = row;
-                var go = boardObjects[row, col];
-                var color = go.GetComponent<SpriteRenderer>().color;
-                color.a = 0.5f;
-                go.GetComponent<SpriteRenderer>().color = color;
-                Debug.Log(mouseDownPosArray[dragCount, 0] + "," + mouseDownPosArray[dragCount, 1]);
+                var blockType = board[row, col];
+                var draggedBlock = new Block { BlockType = blockType, Row = row, Col = col };
+
+                if (draggedBlocks.Count < 1)
+                {
+                    draggedBlocks.Add(draggedBlock);
+                    boardObjects[row, col].GetComponent<Animator>().SetTrigger("Blink");
+                }
+                else
+                {
+                    var lastDraggedBlock = draggedBlocks[draggedBlocks.Count - 1];
+                    if (lastDraggedBlock.IsClosed(draggedBlock))
+                    {
+                        draggedBlocks.Add(draggedBlock);
+                        boardObjects[row, col].GetComponent<Animator>().SetTrigger("Blink");
+                    }
+                }
             }
         }
     }
@@ -159,38 +153,73 @@ public class BoardController : MonoBehaviour
 
     GameObject NewBlock(BlockType blockType)
     {
+        GameObject go = null;
         switch (blockType)
         {
             case BlockType.Cherry:
-                return Instantiate(BlockCherryPrefab);
+                go = Instantiate(BlockCherryPrefab);
+                break;
             case BlockType.Grape:
-                return Instantiate(BlockGrapePrefab);
+                go = Instantiate(BlockGrapePrefab);
+                break;
             case BlockType.Orange:
-                return Instantiate(BlockOrangePrefab);
+                go = Instantiate(BlockOrangePrefab);
+                break;
             case BlockType.Paprika:
-                return Instantiate(BlockPaprikaPrefab);
+                go = Instantiate(BlockPaprikaPrefab);
+                break;
             case BlockType.Strawberry:
-                return Instantiate(BlockStrawberryPrefab);
-            default:
-                return null;
+                go = Instantiate(BlockStrawberryPrefab);
+                break;
+        }
+
+        return go;
+    }
+
+    GameObject ScaleBlock(GameObject go)
+    {
+        var goWidth = go.GetComponent<SpriteRenderer>().bounds.size.x;
+        var goHeight = go.GetComponent<SpriteRenderer>().bounds.size.y;
+        float scaleX = blockSize / goWidth - 0.02f;
+        float scaleY = blockSize / goHeight - 0.02f;
+        go.transform.localScale = new Vector3(scaleX, scaleY, 1f);
+
+        return go;
+    }
+
+    IEnumerator ProcessBoard()
+    {
+        yield return new WaitForSeconds(1);
+        DeleteDraggedBlocks();
+        do
+        {
+            yield return new WaitForSeconds(1);
+            FallBlocks(BoardRows);
+            yield return new WaitForSeconds(1);
+        } while (DeleteChainBlocks());
+        yield return new WaitForSeconds(1);
+        FillBoard();
+        yield return new WaitForSeconds(1);
+        while (DeleteChainBlocks())
+        {
+            yield return new WaitForSeconds(1);
+            FillBoard();
         }
     }
 
-    void DeleteBoard()
+    void DeleteDraggedBlocks()
     {
-        for (var i = 0; i < MaxDragCount; i++)
+        foreach (var block in draggedBlocks)
         {
-            var px = mouseDownPosArray[i, 0];
-            var py = mouseDownPosArray[i, 1];
-            Destroy(boardObjects[py, px]);
-            board[py, px] = BlockType.Empty;
+            Debug.Log(block);
         }
+        StartCoroutine(DestroyBlocks(draggedBlocks));
     }
 
     /// <summary>
     /// 消えた盤面を埋める
     /// </summary>
-    void FillBoard()
+    IEnumerator FillBoard()
     {
         // 列ごとにEmptyの数を調べ、上に並べる
         for (int col = 0; col < BoardColumns; col++)
@@ -212,12 +241,54 @@ public class BoardController : MonoBehaviour
                 }
             }
         }
+        yield return new WaitForSeconds(1);
+        // 上に積み重ねたブロックを落とす
+    }
+
+    /// <summary>
+    /// 盤面内の空中にいるブロックたちを落下させる
+    /// </summary>
+    void FallBlocks(int topRow)
+    {
+        for (int col = 0; col < BoardColumns; col++)
+        {
+            for (int row = 0; row < topRow; row++)
+            {
+                var blockType = board[row, col];
+                if (blockType == BlockType.Empty)
+                {
+                    for (int row2 = row; row2 < topRow; row2++)
+                    {
+                        Debug.Log("row2=" + row2);
+                        var blockType2 = board[row2, col];
+                        if (blockType2 != BlockType.Empty)
+                        {
+                            var block = new Block { BlockType = blockType2, Row = row2, Col = col };
+                            MoveBlock(block, row, col);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    void MoveBlock(Block srcBlock, int tgtRow, int tgtCol)
+    {
+        board[tgtRow, tgtCol] = srcBlock.BlockType;
+        board[srcBlock.Row, srcBlock.Col] = BlockType.Empty;
+        var go = boardObjects[srcBlock.Row, srcBlock.Col];
+        if (go != null)
+        {
+            Debug.Log("row=" + tgtRow + " col=" + tgtCol);
+            LocateBlock(go, tgtRow, tgtCol);
+        }
     }
 
     /// <summary>
     /// 盤面で消せそうなものを消す
     /// </summary>
-    bool UpdateBoard()
+    bool DeleteChainBlocks()
     {
         bool isUpdated = false;
 
@@ -276,6 +347,7 @@ public class BoardController : MonoBehaviour
             Debug.Log("candidate=" + block);
         }
 
+        // 抽出した連鎖を消す
         foreach (var chain in chainGroup.UnionChains())
         {
             Debug.Log("NEW CHAIN: " + chain.Count);
@@ -288,13 +360,26 @@ public class BoardController : MonoBehaviour
             {
                 var px = block.Col;
                 var py = block.Row;
-                var color = boardObjects[py, px].GetComponent<SpriteRenderer>().color;
-                color.r = 0;
-                boardObjects[py, px].GetComponent<SpriteRenderer>().color = color;
+                boardObjects[py, px].GetComponent<Animator>().SetTrigger("Rainbow");
             }
+            StartCoroutine(DestroyBlocks(chain.Blocks));
+
+            isUpdated = true;
         }
 
         return isUpdated;
+    }
+
+    IEnumerator DestroyBlocks(List<Block> blocks)
+    {
+        yield return new WaitForSeconds(1);
+        foreach (var block in blocks)
+        {
+            var row = block.Row;
+            var col = block.Col;
+            board[row, col] = BlockType.Empty;
+            Destroy(boardObjects[row, col]);
+        }
     }
 }
 
@@ -425,7 +510,7 @@ class Chain
     public bool IsOverlapped(Chain other)
     {
         bool isOverlapped = false;
-        foreach(var myBlock in blocks)
+        foreach (var myBlock in blocks)
         {
             foreach (var otherBlock in other.blocks)
             {

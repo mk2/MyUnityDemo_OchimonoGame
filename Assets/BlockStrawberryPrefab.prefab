@@ -20,6 +20,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4766525472435248}
   - component: {fileID: 212292991917551022}
+  - component: {fileID: 95608544641799636}
   m_Layer: 0
   m_Name: BlockStrawberryPrefab
   m_TagString: Untagged
@@ -40,6 +41,23 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!95 &95608544641799636
+Animator:
+  serializedVersion: 3
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1877148301698966}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 3168af6890cc1b749a5f4520f2be7c49, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
 --- !u!212 &212292991917551022
 SpriteRenderer:
   m_ObjectHideFlags: 1
