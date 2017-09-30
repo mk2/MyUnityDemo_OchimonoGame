@@ -197,26 +197,26 @@ public class BoardController : MonoBehaviour
         }
         isProgress = true;
 
-        yield return new WaitForSeconds(1);
+        yield return new WaitForSeconds(.5f);
         DeleteDraggedBlocks();
         do
         {
-            yield return new WaitForSeconds(1);
+            yield return new WaitForSeconds(1.5f);
             FallBlocks(BoardRows);
-            yield return new WaitForSeconds(1);
+            yield return new WaitForSeconds(1f);
         } while (DeleteChainBlocks());
-        yield return new WaitForSeconds(1);
+        yield return new WaitForSeconds(1f);
         FillBoard();
-        yield return new WaitForSeconds(1);
+        yield return new WaitForSeconds(1.5f);
         FallBlocks(BoardMaxRows);
-        yield return new WaitForSeconds(1);
+        yield return new WaitForSeconds(1f);
         while (DeleteChainBlocks())
         {
-            yield return new WaitForSeconds(1);
+            yield return new WaitForSeconds(1.5f);
             FillBoard();
-            yield return new WaitForSeconds(1);
+            yield return new WaitForSeconds(1.5f);
             FallBlocks(BoardMaxRows);
-            yield return new WaitForSeconds(1);
+            yield return new WaitForSeconds(1f);
         }
 
         isProgress = false;
@@ -386,7 +386,7 @@ public class BoardController : MonoBehaviour
 
     IEnumerator DestroyBlocks(List<Block> blocks)
     {
-        yield return new WaitForSeconds(1);
+        yield return new WaitForSeconds(1.5f);
         foreach (var block in blocks)
         {
             var row = block.Row;
