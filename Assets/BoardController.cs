@@ -208,10 +208,15 @@ public class BoardController : MonoBehaviour
         yield return new WaitForSeconds(1);
         FillBoard();
         yield return new WaitForSeconds(1);
+        FallBlocks(BoardMaxRows);
+        yield return new WaitForSeconds(1);
         while (DeleteChainBlocks())
         {
             yield return new WaitForSeconds(1);
             FillBoard();
+            yield return new WaitForSeconds(1);
+            FallBlocks(BoardMaxRows);
+            yield return new WaitForSeconds(1);
         }
 
         isProgress = false;
@@ -229,7 +234,7 @@ public class BoardController : MonoBehaviour
     /// <summary>
     /// 消えた盤面を埋める
     /// </summary>
-    IEnumerator FillBoard()
+    void FillBoard()
     {
         // 列ごとにEmptyの数を調べ、上に並べる
         for (int col = 0; col < BoardColumns; col++)
@@ -243,6 +248,7 @@ public class BoardController : MonoBehaviour
                     BlockType blockType;
                     GameObject block;
                     NewRandomBlock(out blockType, out block);
+                    block = ScaleBlock(block);
                     block.GetComponent<SpriteRenderer>().sortingOrder = 1;
                     int newBlockRow = BoardRows + emptyCount;
                     board[newBlockRow, col] = blockType;
@@ -251,8 +257,6 @@ public class BoardController : MonoBehaviour
                 }
             }
         }
-        yield return new WaitForSeconds(1);
-        // 上に積み重ねたブロックを落とす
     }
 
     /// <summary>
