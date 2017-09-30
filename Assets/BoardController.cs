@@ -43,6 +43,8 @@ public class BoardController : MonoBehaviour
 
     List<Block> draggedBlocks = new List<Block>();
 
+    bool isProgress = false;
+
     // Use this for initialization
     void Start()
     {
@@ -100,19 +102,19 @@ public class BoardController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        if (!isProgress && Input.GetMouseButtonDown(0))
         {
             draggedBlocks.Clear();
             dragStart = true;
         }
 
-        if (Input.GetMouseButtonUp(0))
+        if (!isProgress && Input.GetMouseButtonUp(0))
         {
             StartCoroutine(ProcessBoard());
             dragStart = false;
         }
 
-        if (Input.GetMouseButton(0))
+        if (!isProgress && Input.GetMouseButton(0))
         {
             var sx = Input.mousePosition.x;
             var sy = Input.mousePosition.y;
@@ -189,6 +191,12 @@ public class BoardController : MonoBehaviour
 
     IEnumerator ProcessBoard()
     {
+        if (isProgress)
+        {
+            yield break;
+        }
+        isProgress = true;
+
         yield return new WaitForSeconds(1);
         DeleteDraggedBlocks();
         do
@@ -205,6 +213,8 @@ public class BoardController : MonoBehaviour
             yield return new WaitForSeconds(1);
             FillBoard();
         }
+
+        isProgress = false;
     }
 
     void DeleteDraggedBlocks()
