@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class BoardController : MonoBehaviour
 {
@@ -16,6 +17,8 @@ public class BoardController : MonoBehaviour
     public GameObject BlockPaprikaPrefab;
 
     public GameObject BlockPlaceholerPrefab;
+
+    public GameObject chainCount;
 
     float screenWidth;
 
@@ -47,9 +50,17 @@ public class BoardController : MonoBehaviour
 
     bool isFalling = false;
 
+    void ChangeChainCount(int i)
+    {
+        string str = chainCount.GetComponent<Text>().text;
+        chainCount.GetComponent<Text>().text = string.Format(str, i);
+    }
+
     // Use this for initialization
     void Start()
     {
+        chainCount = GameObject.Find("ChainCount");
+        ChangeChainCount(0);
         var bottomLeft = Camera.main.ViewportToWorldPoint(Vector3.zero);
         var topRight = Camera.main.ViewportToWorldPoint(Vector3.one);
         originX = bottomLeft.x;
