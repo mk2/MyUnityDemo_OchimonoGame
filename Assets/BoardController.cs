@@ -18,7 +18,7 @@ public class BoardController : MonoBehaviour
 
     public GameObject BlockPlaceholerPrefab;
 
-    public GameObject chainCount;
+    public GameObject chainCountView;
 
     float screenWidth;
 
@@ -50,16 +50,22 @@ public class BoardController : MonoBehaviour
 
     bool isFalling = false;
 
+    int chainCount = 0;
+
+    string template = "";
+
     void ChangeChainCount(int i)
     {
-        string str = chainCount.GetComponent<Text>().text;
-        chainCount.GetComponent<Text>().text = string.Format(str, i);
+        Debug.Log("chainCount=" + i);
+        string str = chainCountView.GetComponent<Text>().text;
+        chainCountView.GetComponent<Text>().text = string.Format(template, i);
     }
 
     // Use this for initialization
     void Start()
     {
-        chainCount = GameObject.Find("ChainCount");
+        chainCountView = GameObject.Find("ChainCount");
+        template = chainCountView.GetComponent<Text>().text;
         ChangeChainCount(0);
         var bottomLeft = Camera.main.ViewportToWorldPoint(Vector3.zero);
         var topRight = Camera.main.ViewportToWorldPoint(Vector3.one);
@@ -208,7 +214,11 @@ public class BoardController : MonoBehaviour
         {
             yield break;
         }
+
         isProgress = true;
+
+        chainCount = 0;
+        ChangeChainCount(chainCount);
 
         yield return new WaitForSeconds(.5f);
         DeleteDraggedBlocks();
@@ -337,8 +347,8 @@ public class BoardController : MonoBehaviour
         float diffX = tgtX - startX;
         float diffY = tgtY - startY;
 
-        float vx = Mathf.Abs(diffX / 80);
-        float vy = Mathf.Abs(diffY / 80);
+        float vx = Mathf.Abs(diffX / 100);
+        float vy = Mathf.Abs(diffY / 100);
 
         Debug.Log("vy=" + vy);
 
@@ -424,13 +434,15 @@ public class BoardController : MonoBehaviour
         }
 
         // 抽出した連鎖を消す
-        foreach (var chain in chainGroup.UnionChains())
+        List<Chain> unionChains = chainGroup.UnionChains();
+        foreach (var chain in unionChains)
         {
-            Debug.Log("NEW CHAIN: " + chain.Count);
             if (chain.Count < 4)
             {
                 continue;
             }
+
+            ChangeChainCount(++chainCount);
 
             foreach (var block in chain.Blocks)
             {
@@ -526,6 +538,12 @@ class ChainGroup
 
 class Chain
 {
+    string uuid = System.Guid.NewGuid().ToString();
+    public string Uuid
+    {
+        get { return uuid; }
+    }
+
     public BlockType BlockType { get; set; }
 
     List<Block> blocks = new List<Block>();
