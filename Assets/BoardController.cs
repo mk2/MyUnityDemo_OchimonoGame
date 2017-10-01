@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class BoardController : MonoBehaviour
 {
@@ -249,6 +250,11 @@ public class BoardController : MonoBehaviour
             {
                 yield return new WaitForSeconds(.5f);
             }
+        }
+
+        if (chainCount > 29)
+        {
+            SceneManager.LoadScene("GoalScene");
         }
 
         isProgress = false;
