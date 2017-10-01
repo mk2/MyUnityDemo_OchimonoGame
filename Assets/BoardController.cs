@@ -45,6 +45,8 @@ public class BoardController : MonoBehaviour
 
     bool isProgress = false;
 
+    bool isFalling = false;
+
     // Use this for initialization
     void Start()
     {
@@ -202,21 +204,30 @@ public class BoardController : MonoBehaviour
         do
         {
             yield return new WaitForSeconds(1.5f);
-            FallBlocks(BoardRows);
-            yield return new WaitForSeconds(1f);
+            StartCoroutine(FallBlocks(BoardRows));
+            while (isFalling)
+            {
+                yield return new WaitForSeconds(.5f);
+            }
         } while (DeleteChainBlocks());
         yield return new WaitForSeconds(1f);
         FillBoard();
         yield return new WaitForSeconds(1.5f);
-        FallBlocks(BoardMaxRows);
-        yield return new WaitForSeconds(1f);
+        StartCoroutine(FallBlocks(BoardMaxRows));
+        while (isFalling)
+        {
+            yield return new WaitForSeconds(.5f);
+        }
         while (DeleteChainBlocks())
         {
             yield return new WaitForSeconds(1.5f);
             FillBoard();
             yield return new WaitForSeconds(1.5f);
-            FallBlocks(BoardMaxRows);
-            yield return new WaitForSeconds(1f);
+            StartCoroutine(FallBlocks(BoardMaxRows));
+            while (isFalling)
+            {
+                yield return new WaitForSeconds(.5f);
+            }
         }
 
         isProgress = false;
@@ -262,8 +273,10 @@ public class BoardController : MonoBehaviour
     /// <summary>
     /// 盤面内の空中にいるブロックたちを落下させる
     /// </summary>
-    void FallBlocks(int topRow)
+    IEnumerator FallBlocks(int topRow)
     {
+        isFalling = true;
+        var blockMovingBarrier = new Dictionary<string, bool>();
         for (int col = 0; col < BoardColumns; col++)
         {
             for (int row = 0; row < topRow; row++)
@@ -273,30 +286,68 @@ public class BoardController : MonoBehaviour
                 {
                     for (int row2 = row; row2 < topRow; row2++)
                     {
-                        Debug.Log("row2=" + row2);
+                        string uuid = System.Guid.NewGuid().ToString();
                         var blockType2 = board[row2, col];
                         if (blockType2 != BlockType.Empty)
                         {
+                            blockMovingBarrier.Add(uuid, false);
                             var block = new Block { BlockType = blockType2, Row = row2, Col = col };
-                            MoveBlock(block, row, col);
+                            StartCoroutine(MoveBlock(block, row, col, uuid, blockMovingBarrier));
                             break;
                         }
                     }
                 }
             }
         }
+        do
+        {
+            yield return new WaitForSeconds(.1f);
+            bool isFinished = true;
+            foreach (var value in blockMovingBarrier.Values)
+            {
+                isFinished &= value;
+            }
+            isFalling = !isFinished;
+        } while (isFalling);
     }
 
-    void MoveBlock(Block srcBlock, int tgtRow, int tgtCol)
+    IEnumerator MoveBlock(Block srcBlock, int tgtRow, int tgtCol, string uuid, Dictionary<string, bool> blockMovingBarrier)
     {
         board[tgtRow, tgtCol] = srcBlock.BlockType;
         board[srcBlock.Row, srcBlock.Col] = BlockType.Empty;
         var go = boardObjects[srcBlock.Row, srcBlock.Col];
+
+        float startX = srcBlock.Col * blockSize + originX + blockSize / 2;
+        float startY = srcBlock.Row * blockSize + originY + blockSize / 2;
+
+        float tgtX = tgtCol * blockSize + originX + blockSize / 2;
+        float tgtY = tgtRow * blockSize + originY + blockSize / 2;
+
+        float diffX = tgtX - startX;
+        float diffY = tgtY - startY;
+
+        float vx = Mathf.Abs(diffX / 80);
+        float vy = Mathf.Abs(diffY / 80);
+
+        Debug.Log("vy=" + vy);
+
         if (go != null)
         {
-            Debug.Log("row=" + tgtRow + " col=" + tgtCol);
-            LocateBlock(go, tgtRow, tgtCol);
+            var pos = go.transform.position;
+            float value = float.MaxValue;
+            while (value > .01f)
+            {
+                yield return new WaitForEndOfFrame();
+                pos.y -= vy;
+                value = pos.y - tgtY;
+                go.transform.position = pos;
+            }
+            pos.x = tgtX;
+            pos.y = tgtY;
+            go.transform.position = pos;
+            boardObjects[tgtRow, tgtCol] = go;
         }
+        blockMovingBarrier[uuid] = true;
     }
 
     /// <summary>
