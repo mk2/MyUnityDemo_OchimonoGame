@@ -169,7 +169,7 @@ public class BoardController : MonoBehaviour
 
     void NewRandomBlock(out BlockType blockType, out GameObject block)
     {
-        blockType = (BlockType)Random.Range(1, 5);
+        blockType = (BlockType)Random.Range(1, 6);
         block = NewBlock(blockType);
     }
 
